@@ -15,6 +15,30 @@
 static int serial_g = 0;
 static bool Debug = true;
 
+#ifdef GPIO_ENABLE
+void sim_power_on()
+{   
+    if (Debug) printf("Power on starting...\n");
+    wiringPiSetup();
+    pinMode(POWER_PIN, OUTPUT);
+    digitalWrite(POWER_PIN, HIGH);
+    sleep(2);
+    digitalWrite(POWER_PIN,  LOW);
+    sleep(20);
+    if (Debug) printf("Power on done...\n");
+}
+
+void sim_power_off()
+{    
+    if (Debug) printf("Power off starting...\n");
+    digitalWrite(POWER_PIN, HIGH);
+    sleep(3);
+    digitalWrite(POWER_PIN,  LOW);
+    sleep(18);    
+    if (Debug) printf("Power off done...\n");
+}
+#endif
+
 bool at_init(char* port, bool enableDebug)
 {
     Debug = enableDebug;
@@ -216,21 +240,26 @@ bool sim_http_post(const char* url, const char* contentType, const char* data, \
     return ok;
 }                
 
+void sim_gps_start()
+{    
+    _at_send("AT+CGPS=1", "OK", NULL, 1000, 10);
+    sleep(2);
+}
+
 bool sim_gps_get_position(char result[])
 {
-    bool ok = true;
-    // Start GPS session
-    _at_send("AT+CGPS=1", "OK", NULL, 1000, 10);
-
-    // Get GPS info
+    bool ok = true;    
     ok = _at_send("AT+CGPSINFO", "OK", result, 1000, 10);
-    // End GPS session
-    _at_send("AT+CGPS=0", "+CGPS:0", NULL, 1000, 10);
-
     if (ok != true) return false;
     if (strstr(result, ",,,,") != NULL) return false;
 
     return true;
+}
+
+void sim_gps_stop()
+{    
+    _at_send("AT+CGPS=0", "OK", NULL, 1000, 10);
+    // _at_send("", "+CGPS: 0", NULL, 5000, 10);
 }
 
 void sim_time(char result[])

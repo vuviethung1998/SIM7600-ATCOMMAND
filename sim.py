@@ -105,11 +105,13 @@ def http_post(url, contentType, data, connectTimeout, receiveTimeout):
     _at_send('AT+HTTPTERM', 'OK', 120)   
     return ok
 
-def gps_get_data():
-    # Start GPS session
+# Start GPS session
+def gps_start():
     _at_send('AT+CGPS=1', 'OK', 1)
+    time.sleep(2)
 
-    # Get GPS info
+# Get GPS info
+def gps_get_data():    
     r, ok = _at_send('AT+CGPSINFO', 'OK', 1)
     if not ok or r == '':
         _at_send('AT+CGPS=0', '+CGPS:0', 1)
@@ -119,10 +121,13 @@ def gps_get_data():
         return "", False
     data = r.splitlines()[2]
     data = data.split(" ")[1]
-
-    # End GPS session
-    _at_send('AT+CGPS=0', '+CGPS:0', 1)
+    
     return data, True
+
+# Get GPS info
+def gps_stop():    
+    _at_send('AT+CGPS=0', 'OK', 1)
+    _at_send("", "+CGPS: 0", 5);
 
 def time_get():
     r, ok = _at_send('AT+CCLK?', 'OK', 1)
@@ -136,3 +141,28 @@ def time_get():
     except:
         print(r)
         return ''
+
+def rssi():
+    # Check signal quality
+    rep, ok = _at_send('AT+CSQ','OK', 1)
+    if not ok : return 0,0
+    if "+CSQ: " not in rep: return 0,0
+    start_index = rep.find("+CSQ: ")+ len("+CSQ: ")
+    end_index = rep.find( '\r\n',start_index)    
+    result = rep[start_index: end_index]
+    print("CSQ:" + result)
+    l = result.split(",", 1)
+    if len(l) < 2: return 0,0
+    rssi = int(l[0])
+    if rssi == 0: rssi = -113
+    if rssi == 1: rssi = -111
+    if rssi >= 2 and rssi <= 30: rssi = int(-109 + (rssi -2)*3.1)
+    if rssi == 31: rssi = -51
+    # ....
+    per = float(l[1])
+    if per == 0: per = "<0.01%"
+    if per == 1: per = "0.01--0.1%"
+    # ...
+    if per == 99: per = 'not known or not detectable'
+    return rssi, per
+    

@@ -5,7 +5,6 @@ import requests
 Debug = True
 
 URL = 'http://httpbin.org/post'
-# URL = 'http://45.77.243.33:8080/api/v1/UjlsZZytBl97gJYORcS1/telemetry'
 ContentType = 'application/json'
 
 HTTP_CONNECT_TIMEOUT = 20   #s
