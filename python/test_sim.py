@@ -47,7 +47,7 @@ try:
         if Debug:
             print('Send data to Server:' + URL)
             print(body)
-        ok = sim.http_post(URL, ContentType, body, HTTP_CONNECT_TIMEOUT, HTTP_RESPONSE_TIMEOUT)
+        ok = sim.http_post(URL, ContentType, body, '',HTTP_CONNECT_TIMEOUT, HTTP_RESPONSE_TIMEOUT)
         if not ok:
             if Debug: print('Error send data to Server')        
     

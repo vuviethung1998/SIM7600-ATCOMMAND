@@ -1,16 +1,23 @@
+# 
+# According to sim7500_sim7600_series_at_command_manual_v2.00.pdf
+# 
+
+
 import serial
 import time
 
 ser = None
 debug = True
 
+# Init AT Command service
 def at_init(port = '/dev/ttyUSB0', baud = 115200, debugMode = True):
     global ser, debug
     ser = serial.Serial(port, baud)
     ser.flushInput()
     debug = debugMode
-    return check_service()
+    return _check_service()
 
+# Close AT Command service
 def at_close():
     global ser
     if ser != None:
@@ -22,8 +29,8 @@ def _at_send(command,back,timeout, step_check = 0.01):
 
     rec_buff = ''
     if len(command):
-        ser.flushInput()
-        ser.write((command+'\r\n').encode())        
+        ser.flushInput()         
+        ser.write((command+'\r\n').encode())
             
     i = 0
     while i < timeout/step_check:
@@ -45,7 +52,7 @@ def _at_send(command,back,timeout, step_check = 0.01):
         if debug: print(command + ' no responce')
         return '', False
 
-def check_service():    
+def _check_service():    
     # SIM Card Status
     _, ok = _at_send('AT+CPIN?','READY', 1)
     if not ok:
@@ -68,7 +75,11 @@ def check_service():
     _at_send('AT+HTTPTERM', 'OK', 120)
     return True
 
-def _http_config(url, contentType, connectTimeout, receiveTimeout):
+def _http_config(url, contentType, sslConfigId, connectTimeout, receiveTimeout):
+    if sslConfigId != '':
+        _, ok = _at_send('AT+HTTPPARA="SSLCFG",' + sslConfigId, 'OK', 1)
+        if not ok:
+            return False
     _, ok = _at_send('AT+HTTPPARA="URL","' + url + '"', 'OK', 1)
     if not ok:
         return False
@@ -83,12 +94,15 @@ def _http_config(url, contentType, connectTimeout, receiveTimeout):
         return False
     return True
 
-def http_post(url, contentType, data, connectTimeout, receiveTimeout):
+# POST HTTP/HTTPS
+# HTTP: sslConfigId = ''
+# HTTPS: sslConfigId = "0"-"9"
+def http_post(url, contentType, data, sslConfigId, connectTimeout, receiveTimeout):
     # Start HTTP session
     _at_send('AT+HTTPINIT', 'OK', 120)
 
     # Config HTTP session
-    ok = _http_config(url, contentType, connectTimeout, receiveTimeout)
+    ok = _http_config(url, contentType, sslConfigId,connectTimeout, receiveTimeout)
     if not ok:        
         return False
 
@@ -129,6 +143,7 @@ def gps_stop():
     _at_send('AT+CGPS=0', 'OK', 1)
     _at_send("", "+CGPS: 0", 5);
 
+# Get time
 def time_get():
     r, ok = _at_send('AT+CCLK?', 'OK', 1)
     if not ok:
@@ -165,4 +180,39 @@ def rssi():
     # ...
     if per == 99: per = 'not known or not detectable'
     return rssi, per
-    
+
+# Download certificate into the module
+def ssl_download_file_to_sim(filename, content):
+    _, ok = _at_send('AT+CCERTDOWN="' + filename + '",' + str(len(content)), '>', 1)
+    if not ok: return False
+    _, ok = _at_send(content, 'OK', 5)
+    return ok
+
+# Delete certificates
+def ssl_delete_file(filename):
+    _, ok = _at_send('AT+CCERTDELE="' + filename + '"', 'OK', 1)
+    return ok
+
+# List certificates
+def ssl_list():
+    rep, _ = _at_send('AT+CCERTLIST', 'OK', 1)
+    return rep
+
+# Query the configuration of the specified SSL context
+def ssl_query_config(sslConfigId):
+    rep, _ = _at_send('AT+CSSLCFG=' + sslConfigId, 'OK', 1)
+    return rep
+
+# Configure the SSL context
+def ssl_config(sslConfigId, typeConfig, contentConfig):
+    prefix = 'AT+CSSLCFG="' + typeConfig + '",' + sslConfigId + ','
+    if typeConfig in ['sslversion', 'authmode', 'ignorlocaltime', 'negotiatetime', 'enableSNI', \
+         'keypwd', 'ciphersuites']:
+        _, ok = _at_send(prefix + contentConfig, 'OK', 1)
+        return ok
+    if typeConfig in ['cacert', 'clientcert', 'clientkey']:
+        _, ok = _at_send(prefix + '"' + contentConfig + '"', 'OK', 1)
+        return ok
+
+    if debug: print('Not support config type:' + typeConfig)
+    return False

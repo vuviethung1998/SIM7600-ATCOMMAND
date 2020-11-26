@@ -1,3 +1,10 @@
 # SIM7600-AT-Command
 
-- `test_http_wifi_sim.py': Thu nghiem POST data toi Server qua HTTP. Truoc tien gui qua WiFi, neu loi, se gui qua SIM.
+## document
+Chua tai lieu tham khao, datasheet, slide trinh bay ve cach su dung AT Command
+
+## c
+Chua code bang ngon ngu C, chay tren Raspberry Pi
+
+## python
+Chua code bang ngon ngu Python, chay tren Raspberry Pi hoac PC Linux
