@@ -80,18 +80,26 @@ def _http_config(url, contentType, sslConfigId, connectTimeout, receiveTimeout):
         _, ok = _at_send('AT+HTTPPARA="SSLCFG",' + sslConfigId, 'OK', 1)
         if not ok:
             return False
-    _, ok = _at_send('AT+HTTPPARA="URL","' + url + '"', 'OK', 1)
-    if not ok:
-        return False
-    _, ok = _at_send('AT+HTTPPARA="CONTENT","' + contentType + '"', 'OK', 1)
-    if not ok:
-        return False
-    _, ok = _at_send('AT+HTTPPARA="CONNECTTO",' + str(connectTimeout), 'OK', 1)
-    if not ok:
-        return False
-    _, ok = _at_send('AT+HTTPPARA="RECVTO",' + str(receiveTimeout), 'OK', 1)
-    if not ok:
-        return False
+    
+    if url != '':
+        _, ok = _at_send('AT+HTTPPARA="URL","' + url + '"', 'OK', 1)
+        if not ok:
+            return False
+    
+    if contentType != '':
+        _, ok = _at_send('AT+HTTPPARA="CONTENT","' + contentType + '"', 'OK', 1)
+        if not ok:
+            return False
+    
+    if connectTimeout != 0:
+        _, ok = _at_send('AT+HTTPPARA="CONNECTTO",' + str(connectTimeout), 'OK', 1)
+        if not ok:
+            return False
+    
+    if receiveTimeout != 0:
+        _, ok = _at_send('AT+HTTPPARA="RECVTO",' + str(receiveTimeout), 'OK', 1)
+        if not ok:
+            return False
     return True
 
 # POST HTTP/HTTPS
@@ -103,7 +111,8 @@ def http_post(url, contentType, data, sslConfigId, connectTimeout, receiveTimeou
 
     # Config HTTP session
     ok = _http_config(url, contentType, sslConfigId,connectTimeout, receiveTimeout)
-    if not ok:        
+    if not ok:
+        _at_send('AT+HTTPTERM', 'OK', 120)
         return False
 
     # POST data
@@ -118,6 +127,46 @@ def http_post(url, contentType, data, sslConfigId, connectTimeout, receiveTimeou
     # End HTTP session
     _at_send('AT+HTTPTERM', 'OK', 120)   
     return ok
+
+# GET HTTP/HTTPS
+# HTTP: sslConfigId = ''
+# HTTPS: sslConfigId = "0"-"9"
+def http_get(url, sslConfigId, connectTimeout, receiveTimeout):
+    # Start HTTP session
+    _at_send('AT+HTTPINIT', 'OK', 120)
+
+    # Config HTTP session
+    ok = _http_config(url, '', sslConfigId, connectTimeout, receiveTimeout)
+    if not ok:
+        _at_send('AT+HTTPTERM', 'OK', 120)   
+        return '', False
+
+    # GET data
+    rep = ''
+    _, ok = _at_send('AT+HTTPACTION=0', 'OK', 1)
+    if ok:
+        rep, ok = _at_send('', '0,200', 120)        
+        if ok:
+            length = 0
+            r = rep.split('0,200,')
+            if len(r) >= 2:
+                length = int(r[1].split('\r\n')[0].strip())
+                    
+            rep, ok = _at_send('AT+HTTPREAD='+str(length), 'OK', 120, 0.1)
+            if not ok:
+                rep = ''
+            else:
+                start_i = rep.find('DATA,{}\r\n'.format(length))                
+                end_i = rep.rfind('\r\n+HTTPREAD:0')
+                if start_i < 0 or end_i < 0:                    
+                    rep = ''
+                    ok = False
+                
+                rep = rep[start_i:end_i+1]        
+    
+    # End HTTP session
+    _at_send('AT+HTTPTERM', 'OK', 120)   
+    return rep, ok
 
 # Start GPS session
 def gps_start():
