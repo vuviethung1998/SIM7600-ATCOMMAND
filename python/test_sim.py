@@ -1,8 +1,14 @@
 import sys
 import sim
 import time
+import argparse
 
-Debug = True
+Debug = False
+parser = argparse.ArgumentParser()
+parser.add_argument("-debug", action="store_true")
+args = parser.parse_args()
+if args.debug:
+    Debug = True
 
 URL = 'http://httpbin.org/post'
 ContentType = 'application/json'
@@ -13,10 +19,11 @@ HTTP_RESPONSE_TIMEOUT = 5   #s
 
 SIM_SERIAL_PORT = '/dev/ttyUSB0'
 SIM_SERIAL_BAUD = 115200
-
+POWER_KEY = 6
 
 # ---------------------- MAIN ---------------------
 # init SIM
+sim.power_on(POWER_KEY)
 ok = sim.at_init(SIM_SERIAL_PORT, SIM_SERIAL_BAUD, Debug)
 if not ok:
     print('SIM AT init error')
@@ -55,3 +62,4 @@ except KeyboardInterrupt:
     main_is_run = False
     sim.gps_stop()
     sim.at_close()
+    sim.power_down(POWER_KEY)

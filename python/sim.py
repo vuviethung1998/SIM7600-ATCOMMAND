@@ -2,9 +2,35 @@
 # According to sim7500_sim7600_series_at_command_manual_v2.00.pdf
 # 
 
-
+import os
 import serial
 import time
+
+UsePi = 'raspberrypi' in os.popen('uname -a').read()
+if UsePi:
+    import RPi.GPIO as GPIO
+
+def power_on(power_key):    
+    print('SIM7600X is starting:')
+    if UsePi:
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setwarnings(False)
+        GPIO.setup(power_key,GPIO.OUT)
+        time.sleep(0.1)
+        GPIO.output(power_key,GPIO.HIGH)
+        time.sleep(2)
+        GPIO.output(power_key,GPIO.LOW)
+        time.sleep(20)	
+    print('SIM7600X is ready')
+
+def power_down(power_key):
+    print('SIM7600X is loging off:')
+    if UsePi:
+        GPIO.output(power_key,GPIO.HIGH)
+        time.sleep(3)
+        GPIO.output(power_key,GPIO.LOW)
+        time.sleep(18)
+    print('SIM7600X off')
 
 ser = None
 debug = True
