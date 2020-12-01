@@ -10,9 +10,9 @@ args = parser.parse_args()
 if args.debug:
     Debug = True
 
-URL = 'http://httpbin.org/post'
-ContentType = 'application/json'
-body = '{"Temperature(oC)":29.0,"Humidity(%)":74.5,"PM2.5(ug_m3)":30.0}'
+URL = 'http://157.230.32.117:8082/topics/test-pi'
+ContentType = 'application/vnd.kafka.json.v2+json'
+body = '{"records": [{"key": "somekey","value": {"foo": "bar"}},{"value": [ "foo", "bar" ],"partition": 1},{"value": 53.5}]}'
 
 HTTP_CONNECT_TIMEOUT = 20   #s
 HTTP_RESPONSE_TIMEOUT = 5   #s
@@ -40,7 +40,7 @@ try:
         time_sim = sim.time_get()
         if time_sim != '':
             if Debug: print('Time:' + time_sim)
-        
+
         time.sleep(2)
         # Get GPS
         gps, ok = sim.gps_get_data()
@@ -48,7 +48,7 @@ try:
             if Debug: print('GPS:' + gps)
         else:
             if Debug: print('GPS not ready')
-        
+
         time.sleep(2)
         # POST HTTP
         if Debug:
@@ -56,9 +56,9 @@ try:
             print(body)
         ok = sim.http_post(URL, ContentType, body, '',HTTP_CONNECT_TIMEOUT, HTTP_RESPONSE_TIMEOUT)
         if not ok:
-            if Debug: print('Error send data to Server')        
-    
-except KeyboardInterrupt:    
+            if Debug: print('Error send data to Server')
+
+except KeyboardInterrupt:
     main_is_run = False
     sim.gps_stop()
     sim.at_close()
